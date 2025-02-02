@@ -1,0 +1,217 @@
+basePath: /
+definitions:
+  handlers.errorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handlers.newBalanceResponse:
+    properties:
+      message:
+        type: string
+      new_balance:
+        $ref: '#/definitions/models.Balance'
+    type: object
+  models.Balance:
+    properties:
+      EUR:
+        type: number
+      RUB:
+        type: number
+      USD:
+        type: number
+    type: object
+  models.EditWallet:
+    properties:
+      amount:
+        type: number
+      currency:
+        type: string
+    type: object
+  models.User:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  models.UserLogin:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  models.Wallet:
+    properties:
+      balance:
+        $ref: '#/definitions/models.Balance'
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API Server for Wallet
+  title: Wallet API
+  version: "1.0"
+paths:
+  /api/v1/balance:
+    get:
+      consumes:
+      - application/json
+      description: get wallet balance
+      operationId: get-wallet-balance
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Wallet'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Wallet Balance
+      tags:
+      - Wallets
+  /api/v1/login:
+    post:
+      consumes:
+      - application/json
+      description: login
+      operationId: login
+      parameters:
+      - description: login data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: token
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      summary: Login
+      tags:
+      - Auth
+  /api/v1/register:
+    post:
+      consumes:
+      - application/json
+      description: create account
+      operationId: create-account
+      parameters:
+      - description: account data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: integer
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      summary: Registration
+      tags:
+      - Auth
+  /api/v1/wallet/deposit:
+    post:
+      consumes:
+      - application/json
+      description: wallet deposit
+      operationId: wallet-deposit
+      parameters:
+      - description: deposit input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.EditWallet'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.newBalanceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Wallet Deposit
+      tags:
+      - Wallets
+  /api/v1/wallet/withdraw:
+    post:
+      consumes:
+      - application/json
+      description: wallet withdraw
+      operationId: wallet-withdraw
+      parameters:
+      - description: withdraw input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.EditWallet'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.newBalanceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Wallet Withdraw
+      tags:
+      - Wallets
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
