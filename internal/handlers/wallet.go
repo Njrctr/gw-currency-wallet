@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"reflect"
 	"time"
 
 	"github.com/Njrctr/gw-currency-wallet/internal/models"
@@ -64,8 +63,6 @@ func (h *Handler) Deposit(c *gin.Context) {
 		return
 	}
 	input.OperationType = "DEPOSIT"
-	logrus.Println(input)
-	logrus.Println(reflect.TypeOf(input.Amount))
 
 	newBalance, err := h.services.WithdrawOrDeposit(c, userId, input)
 	if err != nil {
@@ -110,8 +107,6 @@ func (h *Handler) Withdraw(c *gin.Context) {
 		return
 	}
 	input.OperationType = "WITHDRAW"
-	logrus.Println(input)
-	logrus.Println(reflect.TypeOf(input.Amount))
 
 	newBalance, err := h.services.WithdrawOrDeposit(c, userId, input)
 	if err != nil {
@@ -159,15 +154,15 @@ func (h *Handler) GetRates(c *gin.Context) {
 	})
 }
 
-// GetRateForCurrency
-// @Summary GetRateForCurrency
+// Exchange
+// @Summary Exchange
 // @Security ApiKeyAuth
 // @Tags Wallets
-// @Description GetRateForCurrency
-// @ID get-rate-for-currency
+// @Description Exchange
+// @ID exchange
 // @Accept  json
 // @Produce  json
-// @Param input body models.ExchangeRequest true "rate input"
+// @Param input body models.ExchangeRequest true "Exchange input"
 // @Success 200 {object} exchangeResponse
 // @Failure 400 {object} errorResponse
 // @Router /api/v1/exchange [post]

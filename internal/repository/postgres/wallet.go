@@ -70,7 +70,6 @@ func (r *WalletPostgresRepo) Transfer(ctx context.Context, input models.Transfer
 		AND uw.user_id=$1 
 		RETURNING w.%s, w.%s`, walletsTable, transer, usersWalletsTable, input.From, input.To)
 
-	fmt.Println(query)
 	err := r.db.Get(&newBalance, query, input.UserId)
 	if err != nil && err.Error() == ErrBalanceCheck {
 		return models.Balance{}, errors.New("недостаточно средств на счете")
