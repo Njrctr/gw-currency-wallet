@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/Njrctr/gw-currency-wallet/internal/models"
 	"github.com/gin-gonic/gin"
@@ -21,12 +24,13 @@ import (
 // @Failure 500 {object} errorResponse
 // @Router /api/v1/balance [get]
 func (h *Handler) GetBalance(c *gin.Context) {
+
 	userId, err := getUserId(c)
 	if err != nil {
 		logrus.Error(err)
 		return
 	}
-	wallet, err := h.services.GetWallet(userId)
+	wallet, err := h.services.GetWallet(c, userId)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 	}
@@ -63,7 +67,7 @@ func (h *Handler) Deposit(c *gin.Context) {
 	logrus.Println(input)
 	logrus.Println(reflect.TypeOf(input.Amount))
 
-	newBalance, err := h.services.WithdrawOrDeposit(userId, input)
+	newBalance, err := h.services.WithdrawOrDeposit(c, userId, input)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -109,7 +113,7 @@ func (h *Handler) Withdraw(c *gin.Context) {
 	logrus.Println(input)
 	logrus.Println(reflect.TypeOf(input.Amount))
 
-	newBalance, err := h.services.WithdrawOrDeposit(userId, input)
+	newBalance, err := h.services.WithdrawOrDeposit(c, userId, input)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -121,4 +125,107 @@ func (h *Handler) Withdraw(c *gin.Context) {
 	})
 }
 
-func (h *Handler) GetRates(c *gin.Context) {}
+// GetRates
+// @Summary Get Rates
+// @Security ApiKeyAuth
+// @Tags Wallets
+// @Description get rates
+// @ID get-rates
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} models.Rates
+// @Failure 500 {object} errorResponse
+// @Router /api/v1/exchange/rates [get]
+func (h *Handler) GetRates(c *gin.Context) {
+
+	// Проверяем не устарели ли значения в хэше
+	if h.cache.LastUpdate < time.Now().Unix() {
+		rates, err := h.exchanges.GetExchangeRates(c)
+		if err != nil {
+			newErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer h.cache.Set(rates.Rates)
+
+		c.JSON(http.StatusOK, gin.H{
+			"rates": rates.Rates,
+		})
+		return
+	}
+	// Берём значение из хэша
+	rates := h.cache.Get()
+	c.JSON(http.StatusOK, gin.H{
+		"rates": rates,
+	})
+}
+
+// GetRateForCurrency
+// @Summary GetRateForCurrency
+// @Security ApiKeyAuth
+// @Tags Wallets
+// @Description GetRateForCurrency
+// @ID get-rate-for-currency
+// @Accept  json
+// @Produce  json
+// @Param input body models.ExchangeRequest true "rate input"
+// @Success 200 {object} exchangeResponse
+// @Failure 400 {object} errorResponse
+// @Router /api/v1/exchange [post]
+func (h *Handler) Exchange(c *gin.Context) {
+	var input models.ExchangeRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"error": "Insufficient funds or invalid currencies",
+		})
+		return
+	} else if input.From == "" || input.To == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"error": "Insufficient funds or invalid currencies",
+		})
+		return
+	}
+
+	if input.From == input.To {
+		c.JSON(http.StatusOK, gin.H{
+			"error": "Insufficient funds or invalid currencies",
+		})
+		return
+	}
+
+	rate, err := h.exchanges.GetRateForCurrency(context.Background(), input.From, input.To)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	userId, err := getUserId(c)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	transferData := models.TransferOperation{
+		UserId: userId,
+		From:   input.From,
+		To:     input.To,
+		Amount: input.Amount,
+		Rate:   rate.Rate,
+	}
+	newBalance, err := h.services.Transfer(context.Background(), transferData)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	fmt.Println(newBalance)
+	c.JSON(http.StatusOK, exchangeResponse{
+		Message:    "Exchange successful",
+		Amount:     input.Amount,
+		NewBalance: newBalance,
+	})
+}
+
+type exchangeResponse struct {
+	Message    string         `json:"message"`
+	Amount     float64        `json:"exchanged_amount"`
+	NewBalance models.Balance `json:"new_balance"`
+}

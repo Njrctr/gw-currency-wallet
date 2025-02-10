@@ -18,14 +18,20 @@ type ConfigDB struct {
 	Password string
 }
 
+type ClientConfig struct {
+	Address string
+}
+
 type ConfigApp struct {
 	Port     string
 	TokenTTL int
+	CacheTTL int
 }
 
 type Config struct {
-	DB  ConfigDB
-	App ConfigApp
+	DB     ConfigDB
+	App    ConfigApp
+	Client ClientConfig
 }
 
 func NewConfig() (Config, error) {
@@ -44,10 +50,12 @@ func NewConfig() (Config, error) {
 		logrus.Fatalf("Ошибка получения переменных окружения: %s", err.Error())
 	}
 	tokenTTL, _ := strconv.Atoi(os.Getenv("APP_TOKEN_TTL"))
+	cacheTTL, _ := strconv.Atoi(os.Getenv("APP_CACHE_TTL"))
 	config := Config{
 		App: ConfigApp{
 			Port:     os.Getenv("APP_PORT"),
 			TokenTTL: tokenTTL,
+			CacheTTL: cacheTTL,
 		},
 		DB: ConfigDB{
 			Host:     os.Getenv("DB_HOST"),
@@ -56,6 +64,9 @@ func NewConfig() (Config, error) {
 			Username: os.Getenv("DB_USERNAME"),
 			SSLMode:  os.Getenv("DB_SSLMODE"),
 			Password: os.Getenv("DB_PASSWORD"),
+		},
+		Client: ClientConfig{
+			Address: os.Getenv("GRPC_HOST"),
 		},
 	}
 	return config, nil

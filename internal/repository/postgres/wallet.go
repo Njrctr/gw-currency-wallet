@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -18,7 +19,7 @@ func NewWalletPostgresRepo(db *sqlx.DB) *WalletPostgresRepo {
 	return &WalletPostgresRepo{db: db}
 }
 
-func (r *WalletPostgresRepo) GetWallet(userId int) (models.Wallet, error) {
+func (r *WalletPostgresRepo) GetWallet(ctx context.Context, userId int) (models.Wallet, error) {
 	var wallet models.Balance
 	query := fmt.Sprintf(
 		"SELECT usd, rub, eur FROM %s w INNER JOIN %s uw on w.id=uw.wallet_id WHERE uw.user_id = $1",
@@ -29,6 +30,7 @@ func (r *WalletPostgresRepo) GetWallet(userId int) (models.Wallet, error) {
 }
 
 func (r *WalletPostgresRepo) EditBalance(
+	ctx context.Context,
 	userId int, operation models.EditWallet,
 ) (models.Balance, error) {
 
@@ -52,8 +54,27 @@ func (r *WalletPostgresRepo) EditBalance(
 	if err != nil && err.Error() == ErrBalanceCheck {
 		return models.Balance{}, errors.New("недостаточно средств на счете")
 	}
-	// pq: new row for relation \"wallets\" violates check constraint \"wallets_eur_check\"
-	// pq: new row for relation "wallets" violates check constraint "wallets_eur_check"
 
 	return newBalance, err
+}
+
+func (r *WalletPostgresRepo) Transfer(ctx context.Context, input models.TransferOperation) (models.Balance, error) {
+	var newBalance models.Balance
+	transer := fmt.Sprintf("%s=%s-%v, %s=%s+%v", input.From, input.From, input.Amount,
+		input.To, input.To, input.Amount*input.Rate)
+	query := fmt.Sprintf(
+		`UPDATE %s w 
+		SET %s 
+		FROM %s uw
+		WHERE w.id=uw.wallet_id
+		AND uw.user_id=$1 
+		RETURNING w.%s, w.%s`, walletsTable, transer, usersWalletsTable, input.From, input.To)
+
+	fmt.Println(query)
+	err := r.db.Get(&newBalance, query, input.UserId)
+	if err != nil && err.Error() == ErrBalanceCheck {
+		return models.Balance{}, errors.New("недостаточно средств на счете")
+	}
+
+	return newBalance, nil
 }

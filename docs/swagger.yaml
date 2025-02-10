@@ -5,6 +5,8 @@ definitions:
       message:
         type: string
     type: object
+  handlers.exchangeResponse:
+    type: object
   handlers.newBalanceResponse:
     properties:
       message:
@@ -27,6 +29,24 @@ definitions:
         type: number
       currency:
         type: string
+    type: object
+  models.ExchangeRequest:
+    properties:
+      amount:
+        type: number
+      from_currency:
+        type: string
+      to_currency:
+        type: string
+    type: object
+  models.Rates:
+    properties:
+      EUR:
+        type: number
+      RUB:
+        type: number
+      USD:
+        type: number
     type: object
   models.User:
     properties:
@@ -83,6 +103,57 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get Wallet Balance
+      tags:
+      - Wallets
+  /api/v1/exchange:
+    post:
+      consumes:
+      - application/json
+      description: GetRateForCurrency
+      operationId: get-rate-for-currency
+      parameters:
+      - description: rate input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.ExchangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.exchangeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: GetRateForCurrency
+      tags:
+      - Wallets
+  /api/v1/exchange/rates:
+    get:
+      consumes:
+      - application/json
+      description: get rates
+      operationId: get-rates
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Rates'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Rates
       tags:
       - Wallets
   /api/v1/login:

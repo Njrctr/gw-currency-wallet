@@ -2,21 +2,32 @@ package handlers
 
 import (
 	_ "github.com/Njrctr/gw-currency-wallet/docs"
+	exchanger_grpc "github.com/Njrctr/gw-currency-wallet/internal/clients/exchanger"
 	"github.com/Njrctr/gw-currency-wallet/internal/service"
+	"github.com/Njrctr/gw-currency-wallet/pkg/cache"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Handler struct {
-	services *service.Service
-	tokenTTL int
+	services  *service.Service
+	exchanges *exchanger_grpc.GRPCClient
+	cache     *cache.CacheInMemory
+	tokenTTL  int
 }
 
-func NewHandler(services *service.Service, tokenTTL int) *Handler {
+func NewHandler(
+	services *service.Service,
+	grpcapi *exchanger_grpc.GRPCClient,
+	tokenTTL int,
+	cacheTTL int,
+) *Handler {
 	return &Handler{
-		services: services,
-		tokenTTL: tokenTTL,
+		services:  services,
+		exchanges: grpcapi,
+		cache:     cache.NewCacheInMemory(int64(cacheTTL)),
+		tokenTTL:  tokenTTL,
 	}
 }
 
@@ -45,6 +56,7 @@ func (h *Handler) InitRouters() *gin.Engine {
 			// EXCHANGE
 			exchange := v1.Group("/exchange", h.userIdentify)
 			{
+				exchange.POST("", h.Exchange)
 				exchange.GET("/rates", h.GetRates)
 			}
 		}

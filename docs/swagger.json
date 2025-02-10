@@ -44,6 +44,87 @@
                 }
             }
         },
+        "/api/v1/exchange": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "GetRateForCurrency",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallets"
+                ],
+                "summary": "GetRateForCurrency",
+                "operationId": "get-rate-for-currency",
+                "parameters": [
+                    {
+                        "description": "rate input",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ExchangeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.exchangeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/exchange/rates": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "get rates",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallets"
+                ],
+                "summary": "Get Rates",
+                "operationId": "get-rates",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Rates"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/login": {
             "post": {
                 "description": "login",
@@ -246,6 +327,9 @@
                 }
             }
         },
+        "handlers.exchangeResponse": {
+            "type": "object"
+        },
         "handlers.newBalanceResponse": {
             "type": "object",
             "properties": {
@@ -279,6 +363,34 @@
                 },
                 "currency": {
                     "type": "string"
+                }
+            }
+        },
+        "models.ExchangeRequest": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "from_currency": {
+                    "type": "string"
+                },
+                "to_currency": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Rates": {
+            "type": "object",
+            "properties": {
+                "EUR": {
+                    "type": "number"
+                },
+                "RUB": {
+                    "type": "number"
+                },
+                "USD": {
+                    "type": "number"
                 }
             }
         },

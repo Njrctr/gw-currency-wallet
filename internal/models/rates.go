@@ -5,3 +5,9 @@ type Rates struct {
 	Rub float64 `json:"RUB" db:"rub"`
 	Eur float64 `json:"EUR" db:"eur"`
 }
+
+type ExchangeRequest struct {
+	From   string  `json:"from_currency"`
+	To     string  `json:"to_currency"`
+	Amount float64 `json:"amount"`
+}

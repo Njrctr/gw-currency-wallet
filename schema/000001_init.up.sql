@@ -18,6 +18,21 @@ CREATE TABLE IF NOT EXISTS users_wallets (
     wallet_id int references wallets(id) on delete cascade not null
 );
 
+CREATE TABLE IF NOT EXISTS currency_rates (
+    id serial not null PRIMARY KEY,
+    from_currency varchar(255) not null,
+    to_currency varchar(255) not null,
+    rate float not null
+);
+
+INSERT INTO currency_rates (from_currency, to_currency, rate) VALUES
+    ('USD', 'EUR', 0.94),
+    ('USD', 'RUB', 85.5),
+    ('EUR', 'USD', 1.06),
+    ('EUR', 'RUB', 90.8),
+    ('RUB', 'USD', 0.0117),
+    ('RUB', 'EUR', 0.011);
+
 CREATE FUNCTION wallets_balance_check() RETURNS trigger AS $balance_ckeck$
     BEGIN
         -- Проверить что баланс не ухлдит ниже нуля

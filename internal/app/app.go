@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	exchanger_grpc "github.com/Njrctr/gw-currency-wallet/internal/clients/exchanger"
 	"github.com/Njrctr/gw-currency-wallet/internal/config"
 	"github.com/Njrctr/gw-currency-wallet/internal/handlers"
 	"github.com/Njrctr/gw-currency-wallet/internal/models"
@@ -17,18 +18,28 @@ import (
 )
 
 func Run() {
+
 	cfg, err := config.NewConfig()
 	if err != nil {
 		logrus.Fatalf("Ошибка инициализации конфига: %s", err.Error())
 	}
+	
 	db, err := postgres.NewDB(cfg.DB)
 	if err != nil {
 		logrus.Fatalf("Ошибка инициализации БД: %s", err.Error())
 	}
 
+	exchangeClient, err := exchanger_grpc.NewGRPCClient(
+		context.Background(),
+		cfg.Client.Address,
+	)
+	if err != nil {
+		logrus.Fatalf("Ошибка инициализации grpc Клиента: %s", err.Error())
+	}
+
 	repos := repository.NewRepository(db)
 	services := service.NewService(repos)
-	handlers := handlers.NewHandler(services, cfg.App.TokenTTL)
+	handlers := handlers.NewHandler(services, exchangeClient, cfg.App.TokenTTL, cfg.App.CacheTTL)
 	server := new(models.Server)
 	logrus.Print("Try to start server on port: ", cfg.App.Port)
 

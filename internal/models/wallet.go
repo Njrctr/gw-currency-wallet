@@ -21,3 +21,11 @@ type Exchange struct {
 	To     string  `json:"to_currency"`
 	Amount float64 `json:"amount"`
 }
+
+type TransferOperation struct {
+	UserId int
+	From   string
+	To     string
+	Amount float64
+	Rate   float64
+}

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/Njrctr/gw-currency-wallet/internal/models"
 	"github.com/Njrctr/gw-currency-wallet/internal/repository"
 )
@@ -12,8 +14,9 @@ type Authorization interface {
 }
 
 type Wallet interface {
-	GetWallet(userId int) (models.Wallet, error)
-	WithdrawOrDeposit(userId int, operation models.EditWallet) (models.Balance, error)
+	GetWallet(ctx context.Context, userId int) (models.Wallet, error)
+	WithdrawOrDeposit(ctx context.Context, userId int, operation models.EditWallet) (models.Balance, error)
+	Transfer(ctx context.Context, input models.TransferOperation) (models.Balance, error)
 }
 
 type Service struct {
