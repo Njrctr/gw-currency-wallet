@@ -6,6 +6,13 @@ definitions:
         type: string
     type: object
   handlers.exchangeResponse:
+    properties:
+      exchanged_amount:
+        type: number
+      message:
+        type: string
+      new_balance:
+        $ref: '#/definitions/models.Balance'
     type: object
   handlers.newBalanceResponse:
     properties:
@@ -109,10 +116,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: GetRateForCurrency
-      operationId: get-rate-for-currency
+      description: Exchange
+      operationId: exchange
       parameters:
-      - description: rate input
+      - description: Exchange input
         in: body
         name: input
         required: true
@@ -131,7 +138,7 @@ paths:
             $ref: '#/definitions/handlers.errorResponse'
       security:
       - ApiKeyAuth: []
-      summary: GetRateForCurrency
+      summary: Exchange
       tags:
       - Wallets
   /api/v1/exchange/rates:

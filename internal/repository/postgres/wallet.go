@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/Njrctr/gw-currency-wallet/internal/models"
 	"github.com/jmoiron/sqlx"
@@ -12,11 +13,15 @@ import (
 var ErrBalanceCheck = "pq: Недостаточно средст для выполнения операции"
 
 type WalletPostgresRepo struct {
-	db *sqlx.DB
+	db  *sqlx.DB
+	log *slog.Logger
 }
 
-func NewWalletPostgresRepo(db *sqlx.DB) *WalletPostgresRepo {
-	return &WalletPostgresRepo{db: db}
+func NewWalletPostgresRepo(db *sqlx.DB, log *slog.Logger) *WalletPostgresRepo {
+	return &WalletPostgresRepo{
+		db:  db,
+		log: log,
+	}
 }
 
 func (r *WalletPostgresRepo) GetWallet(ctx context.Context, userId int) (models.Wallet, error) {

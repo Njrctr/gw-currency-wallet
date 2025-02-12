@@ -7,7 +7,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var (
+const (
 	walletsTable      = "wallets"
 	usersTable        = "users"
 	usersWalletsTable = "users_wallets"

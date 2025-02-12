@@ -57,7 +57,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "GetRateForCurrency",
+                "description": "Exchange",
                 "consumes": [
                     "application/json"
                 ],
@@ -67,11 +67,11 @@ const docTemplate = `{
                 "tags": [
                     "Wallets"
                 ],
-                "summary": "GetRateForCurrency",
-                "operationId": "get-rate-for-currency",
+                "summary": "Exchange",
+                "operationId": "exchange",
                 "parameters": [
                     {
-                        "description": "rate input",
+                        "description": "Exchange input",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -334,7 +334,18 @@ const docTemplate = `{
             }
         },
         "handlers.exchangeResponse": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+                "exchanged_amount": {
+                    "type": "number"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "new_balance": {
+                    "$ref": "#/definitions/models.Balance"
+                }
+            }
         },
         "handlers.newBalanceResponse": {
             "type": "object",

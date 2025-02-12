@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/Njrctr/gw-currency-wallet/internal/models"
 	"github.com/Njrctr/gw-currency-wallet/internal/repository"
 )
+
+//go:generate mockgen -source=./service.go -destination=./mocks/service.go
 
 type Authorization interface {
 	CreateUser(login models.User) error
@@ -22,11 +25,13 @@ type Wallet interface {
 type Service struct {
 	Authorization
 	Wallet
+	log *slog.Logger
 }
 
-func NewService(repos *repository.Repository) *Service {
+func NewService(repos *repository.Repository, log *slog.Logger) *Service {
 	return &Service{
 		Authorization: newAuthService(repos.Authorization),
 		Wallet:        newWalletService(repos.Wallet),
+		log:           log,
 	}
 }

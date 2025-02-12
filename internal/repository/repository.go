@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/Njrctr/gw-currency-wallet/internal/models"
 	"github.com/Njrctr/gw-currency-wallet/internal/repository/postgres"
@@ -22,11 +23,13 @@ type Wallet interface {
 type Repository struct {
 	Authorization
 	Wallet
+	log *slog.Logger
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
+func NewRepository(db *sqlx.DB, log *slog.Logger) *Repository {
 	return &Repository{
-		Authorization: postgres.NewAuthPostgresRepo(db),
-		Wallet:        postgres.NewWalletPostgresRepo(db),
+		Authorization: postgres.NewAuthPostgresRepo(db, log),
+		Wallet:        postgres.NewWalletPostgresRepo(db, log),
+		log:           log,
 	}
 }

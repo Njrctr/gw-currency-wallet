@@ -1,36 +1,43 @@
 package cache
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
 
 type CacheInMemory struct {
-	storage    map[string]float64
-	Ttl        int64
-	LastUpdate int64
+	storage map[string]*InMemoryItem
+	ttl     int64
 	sync.RWMutex
 }
 
 func NewCacheInMemory(ttl int64) *CacheInMemory {
 	return &CacheInMemory{
-		storage: make(map[string]float64),
-		Ttl:     ttl,
+		storage: make(map[string]*InMemoryItem),
 	}
 }
 
-func (c *CacheInMemory) Set(new map[string]float64) {
+type InMemoryItem struct {
+	Value float64
+	Ttl   int64
+}
+
+func (c *CacheInMemory) Set(key string, val float64) {
 	c.Lock()
 	defer c.Unlock()
 
-	c.storage = new
-	c.LastUpdate = time.Now().Unix() + c.Ttl
+	c.storage[key] = &InMemoryItem{
+		Value: val,
+		Ttl:   time.Now().Unix() + c.ttl,
+	}
+	fmt.Println(c.storage)
 }
 
-func (c *CacheInMemory) Get() map[string]float64 {
+func (c *CacheInMemory) Get(key string) *InMemoryItem {
 	c.RLock()
 	defer c.RUnlock()
-	result := c.storage
+	result := c.storage[key]
 
 	return result
 }

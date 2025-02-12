@@ -14,6 +14,7 @@ import (
 	"github.com/Njrctr/gw-currency-wallet/internal/repository"
 	"github.com/Njrctr/gw-currency-wallet/internal/repository/postgres"
 	"github.com/Njrctr/gw-currency-wallet/internal/service"
+	"github.com/Njrctr/gw-currency-wallet/pkg/logger"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,7 +24,7 @@ func Run() {
 	if err != nil {
 		logrus.Fatalf("Ошибка инициализации конфига: %s", err.Error())
 	}
-	
+
 	db, err := postgres.NewDB(cfg.DB)
 	if err != nil {
 		logrus.Fatalf("Ошибка инициализации БД: %s", err.Error())
@@ -37,9 +38,11 @@ func Run() {
 		logrus.Fatalf("Ошибка инициализации grpc Клиента: %s", err.Error())
 	}
 
-	repos := repository.NewRepository(db)
-	services := service.NewService(repos)
-	handlers := handlers.NewHandler(services, exchangeClient, cfg.App.TokenTTL, cfg.App.CacheTTL)
+	log := logger.InitLogger(cfg.App.LogLevel)
+
+	repos := repository.NewRepository(db, log)
+	services := service.NewService(repos, log)
+	handlers := handlers.NewHandler(services, exchangeClient, cfg.App.TokenTTL, cfg.App.CacheTTL, log)
 	server := new(models.Server)
 	logrus.Print("Try to start server on port: ", cfg.App.Port)
 

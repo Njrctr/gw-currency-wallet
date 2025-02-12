@@ -32,7 +32,7 @@ func (h *Handler) userIdentify(c *gin.Context) {
 
 	userId, err := h.services.ParseToken(headerParts[1])
 	if err != nil {
-		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		newErrorResponse(c, http.StatusUnauthorized, "failed to parse token")
 		return
 	}
 

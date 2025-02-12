@@ -52,9 +52,10 @@ func (h *Handler) GetBalance(c *gin.Context) {
 func (h *Handler) Deposit(c *gin.Context) {
 	var input models.EditWallet
 
+	h.log.With("func", "handlers/wallet/Deposit")
 	userId, err := getUserId(c)
 	if err != nil {
-		logrus.Error(err)
+		h.log.Error(err.Error())
 		return
 	}
 
@@ -74,6 +75,7 @@ func (h *Handler) Deposit(c *gin.Context) {
 		Message:    "Account topped up successfully",
 		NewBalance: newBalance,
 	})
+	h.log.Info(fmt.Sprintf("User %d succesfully deposited %v to %s", userId, input.Amount, input.Currency))
 }
 
 type newBalanceResponse struct {
@@ -96,6 +98,7 @@ type newBalanceResponse struct {
 func (h *Handler) Withdraw(c *gin.Context) {
 	var input models.EditWallet
 
+	h.log.With("func", "handlers/wallet/Withdraw")
 	userId, err := getUserId(c)
 	if err != nil {
 		logrus.Error(err)
@@ -118,6 +121,7 @@ func (h *Handler) Withdraw(c *gin.Context) {
 		Message:    "Withdrawal successful",
 		NewBalance: newBalance,
 	})
+	h.log.Info(fmt.Sprintf("User %d succesfully withdrawing %v from %s", userId, input.Amount, input.Currency))
 }
 
 // GetRates
@@ -133,24 +137,21 @@ func (h *Handler) Withdraw(c *gin.Context) {
 // @Router /api/v1/exchange/rates [get]
 func (h *Handler) GetRates(c *gin.Context) {
 
-	// Проверяем не устарели ли значения в хэше
-	if h.cache.LastUpdate < time.Now().Unix() {
-		rates, err := h.exchanges.GetExchangeRates(c)
-		if err != nil {
-			newErrorResponse(c, http.StatusInternalServerError, err.Error())
-			return
-		}
-		defer h.cache.Set(rates.Rates)
-
-		c.JSON(http.StatusOK, gin.H{
-			"rates": rates.Rates,
-		})
+	rates, err := h.exchanges.GetExchangeRates(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	// Берём значение из хэша
-	rates := h.cache.Get()
+
+	defer func(r map[string]float64) {
+		fmt.Println("сохраняем курсы валют в кэш")
+		for key, val := range r {
+			h.cache.Set(key, val)
+		}
+	}(rates.Rates)
+
 	c.JSON(http.StatusOK, gin.H{
-		"rates": rates,
+		"rates": rates.Rates,
 	})
 }
 
@@ -168,6 +169,9 @@ func (h *Handler) GetRates(c *gin.Context) {
 // @Router /api/v1/exchange [post]
 func (h *Handler) Exchange(c *gin.Context) {
 	var input models.ExchangeRequest
+
+	h.log.With("func", "handlers/wallet/Exchange")
+
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"error": "Insufficient funds or invalid currencies",
@@ -178,19 +182,30 @@ func (h *Handler) Exchange(c *gin.Context) {
 			"error": "Insufficient funds or invalid currencies",
 		})
 		return
-	}
-
-	if input.From == input.To {
+	} else if input.From == input.To {
 		c.JSON(http.StatusOK, gin.H{
 			"error": "Insufficient funds or invalid currencies",
 		})
 		return
 	}
 
-	rate, err := h.exchanges.GetRateForCurrency(context.Background(), input.From, input.To)
-	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
+	var rateVal float64
+	rate := h.cache.Get(input.To)
+	fmt.Println(*rate)
+	fmt.Println(rate.Ttl, time.Now().Unix())
+	if rate == nil || rate.Ttl < time.Now().Unix() {
+		h.log.Info("New request to grpc")
+		rate, err := h.exchanges.GetRateForCurrency(context.Background(), input.From, input.To)
+		if err != nil {
+			newErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		h.cache.Set(input.To, rate.Rate)
+
+		rateVal = rate.Rate
+	} else {
+		rateVal = rate.Value
 	}
 
 	userId, err := getUserId(c)
@@ -204,7 +219,7 @@ func (h *Handler) Exchange(c *gin.Context) {
 		From:   input.From,
 		To:     input.To,
 		Amount: input.Amount,
-		Rate:   rate.Rate,
+		Rate:   rateVal,
 	}
 	newBalance, err := h.services.Transfer(context.Background(), transferData)
 	if err != nil {

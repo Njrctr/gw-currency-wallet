@@ -2,24 +2,31 @@ package postgres
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/Njrctr/gw-currency-wallet/internal/models"
 	"github.com/jmoiron/sqlx"
-	"github.com/sirupsen/logrus"
 )
 
 type AuthPostgresRepo struct {
-	db *sqlx.DB
+	db  *sqlx.DB
+	log *slog.Logger
 }
 
-func NewAuthPostgresRepo(db *sqlx.DB) *AuthPostgresRepo {
-	return &AuthPostgresRepo{db: db}
+func NewAuthPostgresRepo(db *sqlx.DB, log *slog.Logger) *AuthPostgresRepo {
+	return &AuthPostgresRepo{
+		db:  db,
+		log: log,
+	}
 }
 
 func (r *AuthPostgresRepo) CreateUser(user models.User) error {
 	tx, err := r.db.Beginx()
+
+	r.log.With("func", "postgres/auth/CreateUser")
+
 	if err != nil {
-		logrus.Errorf("%s", err.Error())
+		r.log.Error(err.Error())
 		return fmt.Errorf("походу не сам бади: %s", err.Error())
 	}
 	// User Create
@@ -28,24 +35,28 @@ func (r *AuthPostgresRepo) CreateUser(user models.User) error {
 		`INSERT INTO %s (email, username, password_hash) VALUES ($1, $2, $3) RETURNING id`,
 		usersTable)
 	result := tx.QueryRow(userQuery, user.Email, user.Username, user.Password)
+
 	if err := result.Scan(&userId); err != nil {
 		_ = tx.Rollback()
-		logrus.Errorf("result.Scan(&userId): %s", err.Error())
+		r.log.Error(fmt.Sprintf("result.Scan(&userId): %s", err.Error()))
 		return fmt.Errorf("username or email already exists")
 	}
 	// Wallet Create
-	return createWallet(tx, userId)
+	return createWallet(tx, userId, r.log)
 }
 
-func createWallet(tx *sqlx.Tx, userId int) error {
+func createWallet(tx *sqlx.Tx, userId int, log *slog.Logger) error {
 	var walletId int
+
+	log.With("func", "postgres/auth/createWallet")
+
 	var walletQuery string = fmt.Sprintf(
 		`INSERT INTO %s (usd, eur, rub) VALUES (default, default, default) RETURNING id`,
 		walletsTable)
 	result := tx.QueryRow(walletQuery)
 	if err := result.Scan(&walletId); err != nil {
 		_ = tx.Rollback()
-		logrus.Errorf("%s", err.Error())
+		log.Info(err.Error())
 		return fmt.Errorf("походу не сам бади: %s", err.Error())
 	}
 	// Create relationship user<->wallet
@@ -54,10 +65,10 @@ func createWallet(tx *sqlx.Tx, userId int) error {
 	_, err := tx.Exec(relationQuery, userId, walletId)
 	if err != nil {
 		_ = tx.Rollback()
-		logrus.Errorf("tx.Exec(relationQuery, userId, walletId): %s", err.Error())
+		log.Error(fmt.Sprintf("tx.Exec(relationQuery, userId, walletId): %s", err.Error()))
 		return fmt.Errorf("походу не сам бади: %s", err.Error())
 	}
-
+	log.Info(fmt.Sprintf("User id=%d registered successfully with wallet id=%d", userId, walletId))
 	return tx.Commit()
 }
 

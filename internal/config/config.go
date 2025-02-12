@@ -26,6 +26,7 @@ type ConfigApp struct {
 	Port     string
 	TokenTTL int
 	CacheTTL int
+	LogLevel string
 }
 
 type Config struct {
@@ -43,7 +44,7 @@ func NewConfig() (Config, error) {
 		logrus.Fatalf("Неверный режим запуска: %s", *mode)
 	}
 	if *mode == "release" {
-		confFile = "config_docker.env"
+		confFile = "config_relese.env"
 	}
 
 	if err := godotenv.Load(confFile); err != nil {
@@ -56,6 +57,7 @@ func NewConfig() (Config, error) {
 			Port:     os.Getenv("APP_PORT"),
 			TokenTTL: tokenTTL,
 			CacheTTL: cacheTTL,
+			LogLevel: os.Getenv("APP_LOG_LEVEL"),
 		},
 		DB: ConfigDB{
 			Host:     os.Getenv("DB_HOST"),

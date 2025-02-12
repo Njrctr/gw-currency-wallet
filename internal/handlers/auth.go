@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Njrctr/gw-currency-wallet/internal/models"
@@ -23,13 +24,17 @@ import (
 func (h *Handler) Registration(c *gin.Context) {
 	var input models.User
 
+	h.log.With("func", "Handler/Registration")
+
 	if err := c.ShouldBindJSON(&input); err != nil {
+		h.log.Debug(fmt.Sprintf("invalid input body: %v", err.Error()))
 		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
 		return
 	}
 
 	if err := h.services.CreateUser(input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		h.log.Debug(err.Error())
+		newErrorResponse(c, http.StatusInternalServerError, "Service error")
 		return
 	}
 

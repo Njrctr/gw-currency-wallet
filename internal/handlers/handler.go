@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"log/slog"
+
 	_ "github.com/Njrctr/gw-currency-wallet/docs"
 	exchanger_grpc "github.com/Njrctr/gw-currency-wallet/internal/clients/exchanger"
 	"github.com/Njrctr/gw-currency-wallet/internal/service"
@@ -15,6 +17,7 @@ type Handler struct {
 	exchanges *exchanger_grpc.GRPCClient
 	cache     *cache.CacheInMemory
 	tokenTTL  int
+	log       *slog.Logger
 }
 
 func NewHandler(
@@ -22,12 +25,14 @@ func NewHandler(
 	grpcapi *exchanger_grpc.GRPCClient,
 	tokenTTL int,
 	cacheTTL int,
+	log *slog.Logger,
 ) *Handler {
 	return &Handler{
 		services:  services,
 		exchanges: grpcapi,
 		cache:     cache.NewCacheInMemory(int64(cacheTTL)),
 		tokenTTL:  tokenTTL,
+		log:       log,
 	}
 }
 
