@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+    gw-currency-wallet:
+        build: ./
+        command: ./gw-currency-wallet -mode release
+        ports:
+            - 8080:8080
+        depends_on:
+            - gw-database
+
+
+    gw-database:
+        restart: unless-stopped
+        image: postgres:latest
+        volumes:
+        - ./.database/postgres/data:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_PASSWORD=qwerty
+        ports:
+            - 5436:5432
