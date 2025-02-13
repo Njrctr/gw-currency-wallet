@@ -9,8 +9,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+//go:generate mockgen -source=./grpc.go -destination=./mocks/grpc.go
+
+type GRPCApi interface {
+	GetExchangeRates(ctx context.Context) (exchangev1.ExchangeRatesResponse, error)
+	GetExchangeRateForCurrency(ctx context.Context, from, to string) (exchangev1.ExchangeRateResponse, error)
+}
+
 type GRPCClient struct {
-	api exchangev1.ExchangeServiceClient
+	Api exchangev1.ExchangeServiceClient
 }
 
 func NewGRPCClient(
@@ -26,12 +33,12 @@ func NewGRPCClient(
 	}
 
 	return &GRPCClient{
-		api: exchangev1.NewExchangeServiceClient(con),
+		Api: exchangev1.NewExchangeServiceClient(con),
 	}, nil
 }
 
 func (c *GRPCClient) GetExchangeRates(ctx context.Context) (exchangev1.ExchangeRatesResponse, error) {
-	rates, err := c.api.GetExchangeRates(ctx, &exchangev1.Empty{})
+	rates, err := c.Api.GetExchangeRates(ctx, &exchangev1.Empty{})
 	if err != nil {
 		return exchangev1.ExchangeRatesResponse{}, fmt.Errorf("grpc.GetExchangeRates: %w", err)
 	}
@@ -41,8 +48,8 @@ func (c *GRPCClient) GetExchangeRates(ctx context.Context) (exchangev1.ExchangeR
 	}, nil
 }
 
-func (c *GRPCClient) GetRateForCurrency(ctx context.Context, from, to string) (exchangev1.ExchangeRateResponse, error) {
-	rate, err := c.api.GetExchangeRateForCurrency(ctx, &exchangev1.CurrencyRequest{
+func (c *GRPCClient) GetExchangeRateForCurrency(ctx context.Context, from, to string) (exchangev1.ExchangeRateResponse, error) {
+	rate, err := c.Api.GetExchangeRateForCurrency(ctx, &exchangev1.CurrencyRequest{
 		FromCurrency: from,
 		ToCurrency:   to,
 	})

@@ -11,8 +11,8 @@ type Balance struct {
 }
 
 type EditWallet struct {
-	Amount        float64 `json:"amount"`
-	Currency      string  `json:"currency"`
+	Amount        float64 `json:"amount" binding:"required"`
+	Currency      string  `json:"currency" binding:"required"`
 	OperationType string  `json:"-"` // DEPOSIT or WITHDRAW
 }
 

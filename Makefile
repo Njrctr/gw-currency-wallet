@@ -12,3 +12,6 @@ migrate.down:
 
 run:
 	sudo docker-compose up
+
+test:
+	go test ./... -v

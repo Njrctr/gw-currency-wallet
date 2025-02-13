@@ -73,7 +73,7 @@ func (r *WalletPostgresRepo) Transfer(ctx context.Context, input models.Transfer
 		FROM %s uw
 		WHERE w.id=uw.wallet_id
 		AND uw.user_id=$1 
-		RETURNING w.%s, w.%s`, walletsTable, transer, usersWalletsTable, input.From, input.To)
+		RETURNING w.usd, w.rub, w.eur`, walletsTable, transer, usersWalletsTable)
 
 	err := r.db.Get(&newBalance, query, input.UserId)
 	if err != nil && err.Error() == ErrBalanceCheck {

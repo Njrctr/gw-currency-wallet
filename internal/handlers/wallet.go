@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/Njrctr/gw-currency-wallet/internal/models"
 	"github.com/gin-gonic/gin"
@@ -25,8 +24,9 @@ import (
 func (h *Handler) GetBalance(c *gin.Context) {
 
 	userId, err := getUserId(c)
-	if err != nil {
-		logrus.Error(err)
+	if err != nil || userId <= 0 {
+		h.log.Error(err.Error())
+		newErrorResponse(c, http.StatusInternalServerError, "invalid user id")
 		return
 	}
 	wallet, err := h.services.GetWallet(c, userId)
@@ -63,6 +63,11 @@ func (h *Handler) Deposit(c *gin.Context) {
 		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
 		return
 	}
+	if input.Amount <= 0 {
+		newErrorResponse(c, http.StatusBadRequest, "invalid amount")
+		return
+	}
+
 	input.OperationType = "DEPOSIT"
 
 	newBalance, err := h.services.WithdrawOrDeposit(c, userId, input)
@@ -109,6 +114,10 @@ func (h *Handler) Withdraw(c *gin.Context) {
 		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
 		return
 	}
+	if input.Amount <= 0 {
+		newErrorResponse(c, http.StatusBadRequest, "invalid amount")
+		return
+	}
 	input.OperationType = "WITHDRAW"
 
 	newBalance, err := h.services.WithdrawOrDeposit(c, userId, input)
@@ -144,7 +153,6 @@ func (h *Handler) GetRates(c *gin.Context) {
 	}
 
 	defer func(r map[string]float64) {
-		fmt.Println("сохраняем курсы валют в кэш")
 		for key, val := range r {
 			h.cache.Set(key, val)
 		}
@@ -190,12 +198,11 @@ func (h *Handler) Exchange(c *gin.Context) {
 	}
 
 	var rateVal float64
-	rate := h.cache.Get(input.To)
-	fmt.Println(*rate)
-	fmt.Println(rate.Ttl, time.Now().Unix())
-	if rate == nil || rate.Ttl < time.Now().Unix() {
+	rate, ex := h.cache.Get(input.To)
+	fmt.Println(rate, ex)
+	if !ex {
 		h.log.Info("New request to grpc")
-		rate, err := h.exchanges.GetRateForCurrency(context.Background(), input.From, input.To)
+		rate, err := h.exchanges.GetExchangeRateForCurrency(context.Background(), input.From, input.To)
 		if err != nil {
 			newErrorResponse(c, http.StatusInternalServerError, err.Error())
 			return
@@ -205,6 +212,7 @@ func (h *Handler) Exchange(c *gin.Context) {
 
 		rateVal = rate.Rate
 	} else {
+		h.log.Info("get rate from cache")
 		rateVal = rate.Value
 	}
 
